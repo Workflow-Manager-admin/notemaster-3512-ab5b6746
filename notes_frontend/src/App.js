@@ -1,48 +1,51 @@
-import React, { useState, useEffect } from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useState } from "react";
+import { AuthProvider, useAuth } from "./AuthContext";
+import "./App.css";
+import "./index.css";
+import NotesPage from "./NotesPage";
+import LoginPage from "./LoginPage";
+import RegisterPage from "./RegisterPage";
+import Header from "./Header";
+
+// Simple in-app router for "login", "register", "notes"
+function Router() {
+  const { isAuthenticated } = useAuth();
+  const [route, setRoute] = useState(
+    () => window.location.hash.slice(1) || (isAuthenticated ? "notes" : "login")
+  );
+
+  React.useEffect(() => {
+    const onHashChange = () => setRoute(window.location.hash.slice(1));
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+
+  React.useEffect(() => {
+    if (!isAuthenticated && route !== "register") {
+      window.location.hash = "login";
+    }
+    if (isAuthenticated && (route === "login" || route === "")) {
+      window.location.hash = "notes";
+    }
+  }, [isAuthenticated, route]);
+
+  if (route === "register") return <RegisterPage onNavigateToLogin={() => { window.location.hash = "login"; }} />;
+  if (!isAuthenticated) return <LoginPage onNavigateToRegister={() => { window.location.hash = "register"; }} />;
+  // Default (logged in): notes page
+  return <NotesPage />;
+}
 
 // PUBLIC_INTERFACE
 function App() {
-  const [theme, setTheme] = useState('light');
-
-  // Effect to apply theme to document element
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
-
-  // PUBLIC_INTERFACE
-  const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
-  };
-
   return (
-    <div className="App">
-      <header className="App-header">
-        <button 
-          className="theme-toggle" 
-          onClick={toggleTheme}
-          aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-        >
-          {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
-        </button>
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <p>
-          Current theme: <strong>{theme}</strong>
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <AuthProvider>
+      <div className="app-shell">
+        <Header />
+        <main className="main-content">
+          <Router />
+        </main>
+      </div>
+    </AuthProvider>
   );
 }
 
